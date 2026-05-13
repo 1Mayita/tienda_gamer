@@ -1,0 +1,273 @@
+/* ============================================
+   AUTOZONE — Admin Panel CSS
+============================================ */
+.admin-body { background: #09090f; min-height: 100vh; }
+
+/* ---- LAYOUT ---- */
+.admin-layout { display: flex; min-height: 100vh; }
+
+/* ---- SIDEBAR ---- */
+.admin-sidebar {
+    width: 260px;
+    background: #111118;
+    border-right: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    top: 0; left: 0;
+    height: 100vh;
+    z-index: 100;
+    padding: 0;
+}
+.sidebar-brand {
+    padding: 24px 24px 20px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    display: flex;
+    flex-direction: column;
+}
+.sidebar-brand a {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.6rem;
+    color: #fff;
+    text-decoration: none;
+    letter-spacing: 2px;
+}
+.sidebar-role {
+    font-size: 0.7rem;
+    color: #e8272b;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin-top: 2px;
+}
+.sidebar-nav {
+    flex: 1;
+    padding: 16px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    overflow-y: auto;
+}
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 11px 16px;
+    border-radius: 8px;
+    color: #888899;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+.sidebar-link:hover { background: rgba(255,255,255,0.05); color: #fff; }
+.sidebar-link.active { background: rgba(232,39,43,0.15); color: #fff; border-left: 3px solid #e8272b; }
+.sidebar-icon { font-size: 1.1rem; width: 20px; text-align: center; }
+.sidebar-footer {
+    padding: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
+}
+.sidebar-user { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.sidebar-avatar {
+    width: 36px; height: 36px;
+    border-radius: 50%;
+    background: #e8272b;
+    display: flex; align-items: center; justify-content: center;
+    font-weight: 700; font-size: 0.875rem; color: #fff;
+    flex-shrink: 0;
+}
+.sidebar-username { font-size: 0.875rem; font-weight: 600; color: #fff; margin: 0; }
+.sidebar-email { font-size: 0.72rem; color: #888899; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 160px; }
+.sidebar-logout {
+    display: block;
+    padding: 9px 16px;
+    border-radius: 8px;
+    color: #888899;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 500;
+    transition: all 0.2s;
+    border: 1px solid rgba(255,255,255,0.06);
+    text-align: center;
+}
+.sidebar-logout:hover { background: rgba(232,39,43,0.15); color: #e8272b; border-color: rgba(232,39,43,0.3); }
+
+/* ---- MAIN ---- */
+.admin-main {
+    margin-left: 260px;
+    flex: 1;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+.admin-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 24px 32px;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    background: #111118;
+    position: sticky;
+    top: 0;
+    z-index: 50;
+}
+.admin-page-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 1.8rem;
+    color: #fff;
+    letter-spacing: 1px;
+    margin: 0;
+}
+.admin-breadcrumb { font-size: 0.78rem; color: #888899; margin: 0; }
+.admin-date { font-size: 0.82rem; color: #888899; }
+.admin-content { padding: 28px 32px; flex: 1; }
+
+/* ---- STAT CARDS ---- */
+.stat-card {
+    border-radius: 12px;
+    padding: 24px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    border: 1px solid rgba(255,255,255,0.06);
+    background: #16161e;
+    transition: transform 0.2s;
+}
+.stat-card:hover { transform: translateY(-2px); }
+.stat-icon { font-size: 2.2rem; }
+.stat-body { display: flex; flex-direction: column; }
+.stat-value {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 2rem;
+    color: #fff;
+    letter-spacing: 1px;
+    line-height: 1;
+}
+.stat-label { font-size: 0.78rem; color: #888899; text-transform: uppercase; letter-spacing: 1px; margin-top: 4px; }
+.stat-red   { border-top: 3px solid #e8272b; }
+.stat-blue  { border-top: 3px solid #3b82f6; }
+.stat-gold  { border-top: 3px solid #c9a84c; }
+.stat-green { border-top: 3px solid #22c55e; }
+
+/* ---- ADMIN CARD ---- */
+.admin-card {
+    background: #16161e;
+    border: 1px solid rgba(255,255,255,0.06);
+    border-radius: 12px;
+    padding: 24px;
+}
+.admin-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+.admin-card-title { font-size: 1rem; font-weight: 600; color: #fff; margin: 0; }
+.admin-card-link { font-size: 0.82rem; color: #e8272b; text-decoration: none; }
+
+/* ---- TABLE ---- */
+.admin-table { width: 100%; border-collapse: collapse; }
+.admin-table th {
+    background: #111118;
+    color: #888899;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    padding: 12px 16px;
+    text-align: left;
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.admin-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+    color: #d0d0e0;
+    font-size: 0.875rem;
+    vertical-align: middle;
+}
+.admin-table tr:hover td { background: rgba(255,255,255,0.02); }
+.fw-600 { font-weight: 600; }
+.prod-thumb { width: 50px; height: 38px; object-fit: cover; border-radius: 6px; background: #0f0f16; }
+
+/* ---- BADGES ESTADO ---- */
+.badge-estado {
+    display: inline-block;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+}
+.badge-estado.pendiente  { background: rgba(234,179,8,0.15);  color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+.badge-estado.pagado     { background: rgba(34,197,94,0.15);  color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+.badge-estado.entregado  { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+
+/* ---- STOCK ALERTS ---- */
+.stock-alert-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.stock-alert-item:last-child { border-bottom: none; }
+.stock-alert-name { display: block; font-size: 0.875rem; font-weight: 600; color: #fff; }
+.stock-alert-brand { font-size: 0.78rem; color: #888899; }
+.stock-badge { padding: 4px 12px; border-radius: 20px; font-size: 0.75rem; font-weight: 700; }
+.stock-0   { background: rgba(232,39,43,0.15); color: #e8272b; border: 1px solid rgba(232,39,43,0.3); }
+.stock-low { background: rgba(234,179,8,0.15); color: #fbbf24; border: 1px solid rgba(234,179,8,0.3); }
+
+/* ---- TABLE ACTIONS ---- */
+.btn-table-action {
+    width: 32px; height: 32px;
+    border-radius: 6px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.08);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+}
+.btn-edit:hover   { background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.4); }
+.btn-delete:hover { background: rgba(232,39,43,0.2);  border-color: rgba(232,39,43,0.4); }
+
+/* ---- MODALS ---- */
+.modal-dark        { background: #16161e; border: 1px solid rgba(255,255,255,0.08); color: #f0f0f0; }
+.modal-header-dark { background: #111118; border-bottom: 1px solid rgba(255,255,255,0.08); }
+.modal-footer-dark { background: #111118; border-top: 1px solid rgba(255,255,255,0.08); }
+.modal-title       { color: #fff; font-family: 'Bebas Neue', sans-serif; font-size: 1.4rem; letter-spacing: 1px; }
+
+/* ---- CLIENT NAV ---- */
+.client-nav {
+    background: rgba(10,10,15,0.97);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255,255,255,0.06);
+    padding: 14px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+.client-main { min-height: 100vh; background: #09090f; }
+
+/* Carrito / Favoritos */
+.cart-badge {
+    background: #e8272b;
+    color: #fff;
+    border-radius: 50%;
+    font-size: 0.7rem;
+    font-weight: 700;
+    width: 18px; height: 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    position: absolute;
+    top: -6px; right: -6px;
+}
+.cart-item-row td { padding: 16px; vertical-align: middle; }
+.cart-img { width: 72px; height: 54px; object-fit: cover; border-radius: 8px; }
+.qty-wrap { display: flex; align-items: center; gap: 8px; }
+.qty-btn  { width: 28px; height: 28px; border-radius: 50%; background: #16161e; border: 1px solid rgba(255,255,255,0.1); color: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.2s; }
+.qty-btn:hover { background: #e8272b; border-color: #e8272b; }
+.qty-input { width: 44px; text-align: center; background: #16161e; border: 1px solid rgba(255,255,255,0.1); color: #fff; border-radius: 6px; padding: 4px; font-size: 0.9rem; }
+
+/* Responsive */
+@media (max-width: 991px) {
+    .admin-sidebar { transform: translateX(-100%); }
+    .admin-main    { margin-left: 0; }
+}
