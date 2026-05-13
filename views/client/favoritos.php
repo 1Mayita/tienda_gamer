@@ -67,8 +67,8 @@ $favoritos = $stmt->fetchAll();
             <div class="col-xl-3 col-lg-4 col-md-6">
                 <div class="product-card">
                     <div class="product-img-wrap">
-                        <img src="../../assets/img/<?= htmlspecialchars($p['imagen']) ?>"
-                             onerror="this.src='../../assets/img/default.jpg'"
+                        <img src="<?= IMG_PRODUCTOS_URL . htmlspecialchars($p['imagen']) ?>"
+                             onerror="this.onerror=null;this.src='<?= IMG_DEFAULT_URL ?>'"
                              alt="<?= htmlspecialchars($p['nombre']) ?>"
                              class="product-img">
                         <span class="product-badge"><?= htmlspecialchars($p['nombre_categoria']) ?></span>

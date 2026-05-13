@@ -78,8 +78,8 @@ if ($editId > 0) {
                                 data-marca="<?= strtolower(htmlspecialchars($p['marca'])) ?>">
                                 <td class="text-muted">#<?= $p['id_producto'] ?></td>
                                 <td>
-                                    <img src="../../assets/img/<?= htmlspecialchars($p['imagen']) ?>"
-                                         onerror="this.src='../../assets/img/default.jpg'"
+                                    <img src="<?= IMG_PRODUCTOS_URL . htmlspecialchars($p['imagen']) ?>"
+                                         onerror="this.onerror=null;this.src='<?= IMG_DEFAULT_URL ?>'"
                                          class="prod-thumb" alt="">
                                 </td>
                                 <td class="fw-600"><?= htmlspecialchars($p['nombre']) ?></td>
@@ -161,8 +161,12 @@ if ($editId > 0) {
                             <textarea name="descripcion" class="auth-input" rows="3" placeholder="Descripción del vehículo..."></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="auth-label">Imagen</label>
-                            <input type="file" name="imagen" class="auth-input" accept="image/*">
+                            <label class="auth-label">Imagen <small class="text-muted">(JPG/PNG/WEBP, máx. 5 MB)</small></label>
+                            <input type="file" name="imagen" id="imgInputCrear" class="auth-input" accept="image/jpeg,image/png,image/webp">
+                            <div class="mt-2 text-center" id="previewCrearWrap" style="display:none">
+                                <img id="previewCrear" src="" alt="Preview"
+                                     style="max-height:120px;max-width:100%;border-radius:6px;border:1px solid #2a2a3a;object-fit:cover;">
+                            </div>
                         </div>
                         <div class="col-md-6">
                             <label class="auth-label">Estado</label>
@@ -227,8 +231,16 @@ if ($editId > 0) {
                             <textarea name="descripcion" class="auth-input" rows="3"><?= htmlspecialchars($editProd['descripcion']) ?></textarea>
                         </div>
                         <div class="col-md-6">
-                            <label class="auth-label">Nueva Imagen (opcional)</label>
-                            <input type="file" name="imagen" class="auth-input" accept="image/*">
+                            <label class="auth-label">Imagen actual</label>
+                            <div class="mb-2">
+                                <img id="imgActualEditar"
+                                     src="<?= IMG_PRODUCTOS_URL . htmlspecialchars($editProd['imagen'] ?? 'default.svg') ?>"
+                                     onerror="this.onerror=null;this.src='<?= IMG_DEFAULT_URL ?>'"
+                                     alt="Imagen actual"
+                                     style="max-height:90px;max-width:100%;border-radius:6px;border:1px solid #2a2a3a;object-fit:cover;">
+                            </div>
+                            <label class="auth-label">Cambiar imagen <small class="text-muted">(JPG/PNG/WEBP, máx. 5 MB)</small></label>
+                            <input type="file" name="imagen" id="imgInputEditar" class="auth-input" accept="image/jpeg,image/png,image/webp">
                         </div>
                         <div class="col-md-6">
                             <label class="auth-label">Estado</label>
@@ -265,6 +277,27 @@ document.getElementById('buscador')?.addEventListener('input', function() {
         const texto = row.dataset.nombre + ' ' + row.dataset.marca;
         row.style.display = texto.includes(q) ? '' : 'none';
     });
+});
+
+// Preview de imagen al seleccionar archivo (modal Crear)
+document.getElementById('imgInputCrear')?.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const wrap = document.getElementById('previewCrearWrap');
+    const img  = document.getElementById('previewCrear');
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; wrap.style.display = 'block'; };
+    reader.readAsDataURL(file);
+});
+
+// Preview de imagen al seleccionar archivo (modal Editar)
+document.getElementById('imgInputEditar')?.addEventListener('change', function() {
+    const file = this.files[0];
+    if (!file) return;
+    const img = document.getElementById('imgActualEditar');
+    const reader = new FileReader();
+    reader.onload = e => { img.src = e.target.result; };
+    reader.readAsDataURL(file);
 });
 </script>
 </body>

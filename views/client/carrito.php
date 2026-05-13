@@ -104,8 +104,8 @@ if (!empty($carrito)) {
                             <tr class="cart-item-row">
                                 <td>
                                     <div class="d-flex align-items-center gap-3">
-                                        <img src="../../assets/img/<?= htmlspecialchars($p['imagen']) ?>"
-                                             onerror="this.src='../../assets/img/default.jpg'"
+                                        <img src="<?= IMG_PRODUCTOS_URL . htmlspecialchars($p['imagen']) ?>"
+                                             onerror="this.onerror=null;this.src='<?= IMG_DEFAULT_URL ?>'"
                                              class="cart-img" alt="">
                                         <div>
                                             <p class="fw-600 mb-0" style="color:#fff"><?= htmlspecialchars($p['nombre']) ?></p>

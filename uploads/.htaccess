@@ -1,0 +1,15 @@
+# Bloquear ejecución de PHP y scripts en uploads
+Options -ExecCGI
+RemoveHandler .php .php3 .php4 .php5 .php7 .phtml .pl .py .cgi
+AddType text/plain .php .php3 .php4 .php5 .php7 .phtml .pl .py .cgi
+
+# Tipos MIME para formatos modernos de imagen
+AddType image/avif .avif
+AddType image/webp .webp
+AddType image/svg+xml .svg
+
+# Solo permitir imágenes y SVG
+<FilesMatch "\.(?!jpg$|jpeg$|png$|gif$|webp$|svg$|avif$)[^.]+$">
+    Order Allow,Deny
+    Deny from all
+</FilesMatch>

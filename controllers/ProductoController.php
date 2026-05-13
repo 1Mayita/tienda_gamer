@@ -22,7 +22,7 @@ switch ($accion) {
         $stock       = (int)($_POST['stock']           ?? 0);
         $id_cat      = (int)($_POST['id_categoria']    ?? 0);
         $estado      = (int)($_POST['estado']          ?? 1);
-        $imagen      = 'default.jpg';
+        $imagen      = 'default.svg';
 
         if (empty($nombre) || empty($marca) || $precio <= 0 || $id_cat <= 0) {
             setFlash('error', 'Completa todos los campos obligatorios.');
@@ -32,11 +32,16 @@ switch ($accion) {
 
         // Manejo de imagen
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-            $ext       = pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION);
+            $ext        = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
             $permitidos = ['jpg','jpeg','png','webp'];
-            if (in_array(strtolower($ext), $permitidos)) {
+            $maxBytes   = 5 * 1024 * 1024; // 5 MB
+            if (in_array($ext, $permitidos) && $_FILES['imagen']['size'] <= $maxBytes) {
                 $imagen = uniqid('auto_') . '.' . $ext;
-                move_uploaded_file($_FILES['imagen']['tmp_name'], __DIR__ . '/../assets/img/' . $imagen);
+                move_uploaded_file($_FILES['imagen']['tmp_name'], IMG_PRODUCTOS_PATH . $imagen);
+            } else {
+                setFlash('error', 'Imagen inválida. Usa JPG/PNG/WEBP de hasta 5 MB.');
+                header('Location: ' . BASE_URL . 'views/admin/productos.php?modal=crear');
+                exit;
             }
         }
 
@@ -76,14 +81,16 @@ switch ($accion) {
         $imagen = $actual ?? 'default.jpg';
 
         if (isset($_FILES['imagen']) && $_FILES['imagen']['error'] === UPLOAD_ERR_OK) {
-            $ext       = pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION);
+            $ext        = strtolower(pathinfo($_FILES['imagen']['name'], PATHINFO_EXTENSION));
             $permitidos = ['jpg','jpeg','png','webp'];
-            if (in_array(strtolower($ext), $permitidos)) {
+            $maxBytes   = 5 * 1024 * 1024; // 5 MB
+            if (in_array($ext, $permitidos) && $_FILES['imagen']['size'] <= $maxBytes) {
                 $nueva = uniqid('auto_') . '.' . $ext;
-                move_uploaded_file($_FILES['imagen']['tmp_name'], __DIR__ . '/../assets/img/' . $nueva);
-                // Eliminar imagen anterior si no es default
-                if ($imagen !== 'default.jpg' && file_exists(__DIR__ . '/../assets/img/' . $imagen)) {
-                    unlink(__DIR__ . '/../assets/img/' . $imagen);
+                move_uploaded_file($_FILES['imagen']['tmp_name'], IMG_PRODUCTOS_PATH . $nueva);
+                // Eliminar imagen anterior si no es el placeholder
+                $noEliminar = ['default.jpg', 'default.svg'];
+                if (!in_array($imagen, $noEliminar) && file_exists(IMG_PRODUCTOS_PATH . $imagen)) {
+                    unlink(IMG_PRODUCTOS_PATH . $imagen);
                 }
                 $imagen = $nueva;
             }
