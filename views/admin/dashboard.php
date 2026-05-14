@@ -43,11 +43,6 @@ $productosBajos = $db->query('SELECT * FROM Producto WHERE stock <= 3 AND estado
             </div>
         </div>
 
-        <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['tipo'] === 'success' ? 'success' : 'danger' ?> flash-alert mx-4 mt-3">
-            <?= htmlspecialchars($flash['mensaje']) ?>
-        </div>
-        <?php endif; ?>
 
         <div class="admin-content">
             <!-- STATS CARDS -->
@@ -112,7 +107,7 @@ $productosBajos = $db->query('SELECT * FROM Producto WHERE stock <= 3 AND estado
                                 <tbody>
                                     <?php foreach ($ventasRecientes as $v): ?>
                                     <tr>
-                                        <td class="text-muted">#<?= $v['id_venta'] ?></td>
+                                        <td style="color:#9899aa">#<?= $v['id_venta'] ?></td>
                                         <td><?= htmlspecialchars($v['nombre']) ?></td>
                                         <td class="fw-600">$<?= number_format($v['total'], 2) ?></td>
                                         <td>
@@ -120,7 +115,7 @@ $productosBajos = $db->query('SELECT * FROM Producto WHERE stock <= 3 AND estado
                                                 <?= $v['estado_venta'] ?>
                                             </span>
                                         </td>
-                                        <td class="text-muted"><?= date('d/m/Y', strtotime($v['fecha'])) ?></td>
+                                        <td style="color:#9899aa"><?= date('d/m/Y', strtotime($v['fecha'])) ?></td>
                                     </tr>
                                     <?php endforeach; ?>
                                 </tbody>
@@ -162,5 +157,7 @@ $productosBajos = $db->query('SELECT * FROM Producto WHERE stock <= 3 AND estado
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../../assets/js/main.js"></script>
+<script src="../../assets/js/toasts.js"></script>
+<?php include '../../includes/flash_toast.php'; ?>
 </body>
 </html>

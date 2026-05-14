@@ -124,6 +124,99 @@ switch ($accion) {
         exit;
 
     // ------------------------------------------
+    // CANCELAR PEDIDO (cliente, solo Pendiente)
+    // ------------------------------------------
+    case 'cancelar_pedido':
+        protegerRuta('cliente');
+        $id_venta  = (int)($_POST['id_venta'] ?? 0);
+        $id_usuario = (int)$_SESSION['id_usuario'];
+
+        if ($id_venta <= 0) {
+            setFlash('error', 'Pedido inválido.');
+            header('Location: ' . BASE_URL . 'views/client/dashboard.php');
+            exit;
+        }
+
+        $db = getDB();
+        $stmt = $db->prepare('SELECT * FROM Venta WHERE id_venta = ? AND id_usuario = ?');
+        $stmt->execute([$id_venta, $id_usuario]);
+        $venta = $stmt->fetch();
+
+        if (!$venta) {
+            setFlash('error', 'Pedido no encontrado.');
+            header('Location: ' . BASE_URL . 'views/client/dashboard.php');
+            exit;
+        }
+        if ($venta['estado_venta'] !== 'Pendiente') {
+            setFlash('error', 'Solo se pueden cancelar pedidos en estado Pendiente.');
+            header('Location: ' . BASE_URL . 'views/client/dashboard.php');
+            exit;
+        }
+
+        // Restaurar stock de cada producto
+        $stmtDet = $db->prepare('SELECT id_producto, cantidad FROM Detalle_Venta WHERE id_venta = ?');
+        $stmtDet->execute([$id_venta]);
+        $items = $stmtDet->fetchAll();
+
+        $db->beginTransaction();
+        try {
+            foreach ($items as $item) {
+                $db->prepare('UPDATE Producto SET stock = stock + ? WHERE id_producto = ?')
+                   ->execute([$item['cantidad'], $item['id_producto']]);
+            }
+            $db->prepare('DELETE FROM Detalle_Venta WHERE id_venta = ?')->execute([$id_venta]);
+            $db->prepare('DELETE FROM Venta WHERE id_venta = ?')->execute([$id_venta]);
+            $db->commit();
+            setFlash('success', "Pedido #$id_venta cancelado. El stock ha sido restaurado.");
+        } catch (Exception $e) {
+            $db->rollBack();
+            setFlash('error', 'No se pudo cancelar el pedido. Intenta nuevamente.');
+        }
+        header('Location: ' . BASE_URL . 'views/client/dashboard.php');
+        exit;
+
+    // ------------------------------------------
+    // ELIMINAR IMAGEN DEL PRODUCTO
+    // ------------------------------------------
+    case 'eliminar_imagen':
+        protegerRuta('admin');
+        $id = (int)($_POST['id_producto'] ?? 0);
+        if ($id <= 0) {
+            setFlash('error', 'ID de producto inválido.');
+            header('Location: ' . BASE_URL . 'views/admin/productos.php');
+            exit;
+        }
+        $db = getDB();
+        $stmtImg = $db->prepare('SELECT imagen FROM Producto WHERE id_producto = ?');
+        $stmtImg->execute([$id]);
+        $imgActual = $stmtImg->fetchColumn();
+        $noEliminar = ['default.jpg', 'default.svg'];
+        if ($imgActual && !in_array($imgActual, $noEliminar) && file_exists(IMG_PRODUCTOS_PATH . $imgActual)) {
+            unlink(IMG_PRODUCTOS_PATH . $imgActual);
+        }
+        $db->prepare('UPDATE Producto SET imagen = ? WHERE id_producto = ?')->execute(['default.svg', $id]);
+        setFlash('success', 'Foto eliminada. Se usará la imagen por defecto.');
+        header('Location: ' . BASE_URL . 'views/admin/productos.php');
+        exit;
+
+    // ------------------------------------------
+    // REACTIVAR PRODUCTO
+    // ------------------------------------------
+    case 'reactivar':
+        protegerRuta('admin');
+        $id = (int)($_POST['id_producto'] ?? $_GET['id'] ?? 0);
+        if ($id <= 0) {
+            setFlash('error', 'ID de producto inválido.');
+            header('Location: ' . BASE_URL . 'views/admin/productos.php');
+            exit;
+        }
+        $db = getDB();
+        $db->prepare('UPDATE Producto SET estado = 1 WHERE id_producto = ?')->execute([$id]);
+        setFlash('success', 'Vehículo reactivado correctamente.');
+        header('Location: ' . BASE_URL . 'views/admin/productos.php');
+        exit;
+
+    // ------------------------------------------
     // AGREGAR AL CARRITO
     // ------------------------------------------
     case 'agregar_carrito':
@@ -183,8 +276,12 @@ switch ($accion) {
     case 'confirmar_compra':
         protegerRuta('cliente');
         iniciarSesion();
-        $carrito    = $_SESSION['carrito'] ?? [];
-        $id_usuario = (int)$_SESSION['id_usuario'];
+        $carrito      = $_SESSION['carrito'] ?? [];
+        $id_usuario   = (int)$_SESSION['id_usuario'];
+        $metodosValid = ['Efectivo', 'QR', 'Tarjeta', 'Transferencia'];
+        $metodo_pago  = in_array($_POST['metodo_pago'] ?? '', $metodosValid)
+                        ? $_POST['metodo_pago']
+                        : 'Efectivo';
 
         if (empty($carrito)) {
             setFlash('error', 'El carrito está vacío.');
@@ -193,6 +290,12 @@ switch ($accion) {
         }
 
         $db  = getDB();
+
+        // Agregar columna metodo_pago si no existe aún
+        try {
+            $db->exec("ALTER TABLE Venta ADD COLUMN metodo_pago VARCHAR(50) DEFAULT NULL");
+        } catch (PDOException $e) { /* ya existe */ }
+
         $total = 0.0;
         $items = [];
 
@@ -212,8 +315,8 @@ switch ($accion) {
 
         $db->beginTransaction();
         try {
-            $stmt = $db->prepare('INSERT INTO Venta (id_usuario,total,estado_venta) VALUES (?,?,"Pendiente")');
-            $stmt->execute([$id_usuario, $total]);
+            $stmt = $db->prepare('INSERT INTO Venta (id_usuario,total,estado_venta,metodo_pago) VALUES (?,?,"Pendiente",?)');
+            $stmt->execute([$id_usuario, $total, $metodo_pago]);
             $id_venta = (int)$db->lastInsertId();
 
             foreach ($items as $item) {
@@ -225,8 +328,8 @@ switch ($accion) {
 
             $db->commit();
             unset($_SESSION['carrito']);
-            setFlash('success', '¡Compra realizada! Número de pedido: #' . $id_venta);
-            header('Location: ' . BASE_URL . 'views/client/mis_pedidos.php');
+            setFlash('success', "¡Compra realizada! Pedido #$id_venta — Pago: $metodo_pago");
+            header('Location: ' . BASE_URL . 'views/client/factura.php?id=' . $id_venta);
         } catch (Exception $e) {
             $db->rollBack();
             setFlash('error', 'Error al procesar la compra. Intenta nuevamente.');

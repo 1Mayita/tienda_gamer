@@ -1,6 +1,13 @@
 <?php
 require_once 'config/database.php';
-$db = getDB();
+require_once 'includes/funciones.php';
+iniciarSesion();
+$db        = getDB();
+$logueado  = estaLogueado();
+$esAdmin   = $logueado && ($_SESSION['rol'] ?? '') === 'admin';
+$urlCatalogo = $logueado
+    ? ($esAdmin ? 'views/admin/dashboard.php' : 'views/client/catalogo.php')
+    : 'views/auth/login.php';
 
 // Categorías con sus marcas disponibles
 $rows = $db->query('
@@ -23,6 +30,31 @@ foreach ($rows as $r) {
 }
 
 $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡'];
+
+// Productos destacados + datos para modal
+$stmtP = $db->query('
+    SELECT p.*, c.nombre_categoria
+    FROM Producto p
+    JOIN Categoria c ON p.id_categoria = c.id_categoria
+    WHERE p.estado = 1
+    LIMIT 8
+');
+$productos = $stmtP->fetchAll();
+
+$productosJS = [];
+foreach ($productos as $p) {
+    $productosJS[$p['id_producto']] = [
+        'id'          => $p['id_producto'],
+        'nombre'      => $p['nombre'],
+        'marca'       => $p['marca'],
+        'categoria'   => $p['nombre_categoria'],
+        'descripcion' => $p['descripcion'],
+        'precio'      => $p['precio'],
+        'stock'       => $p['stock'],
+        'imagen'      => IMG_PRODUCTOS_URL . $p['imagen'],
+        'imgDefault'  => IMG_DEFAULT_URL,
+    ];
+}
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -195,12 +227,23 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
 
                 <li class="nav-item"><a class="nav-link nav-scroll" href="#beneficios">Beneficios</a></li>
                 <li class="nav-item"><a class="nav-link nav-scroll" href="#contacto">Contacto</a></li>
+                <?php if ($logueado): ?>
+                <li class="nav-item ms-2">
+                    <a class="btn btn-outline-light btn-sm px-3" href="<?= $urlCatalogo ?>">
+                        <?= htmlspecialchars($_SESSION['nombre']) ?>
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="btn btn-accent btn-sm px-3" href="controllers/AuthController.php?accion=logout">Salir</a>
+                </li>
+                <?php else: ?>
                 <li class="nav-item ms-2">
                     <a class="btn btn-outline-light btn-sm px-4" href="views/auth/login.php">Ingresar</a>
                 </li>
                 <li class="nav-item">
                     <a class="btn btn-accent btn-sm px-4" href="views/auth/registro.php">Registrarse</a>
                 </li>
+                <?php endif; ?>
             </ul>
         </div>
     </div>
@@ -263,21 +306,12 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
         </div>
 
         <div class="row g-4" id="productosGrid">
-            <?php
-            $stmt = $db->query('
-                SELECT p.*, c.nombre_categoria
-                FROM Producto p
-                JOIN Categoria c ON p.id_categoria = c.id_categoria
-                WHERE p.estado = 1
-                LIMIT 8
-            ');
-            $productos = $stmt->fetchAll();
-            foreach ($productos as $p): ?>
+            <?php foreach ($productos as $p): ?>
             <div class="col-xl-3 col-lg-4 col-md-6 producto-item"
                  data-nombre="<?= strtolower(htmlspecialchars($p['nombre'])) ?>"
                  data-marca="<?= strtolower(htmlspecialchars($p['marca'])) ?>"
                  data-cat="<?= strtolower(htmlspecialchars($p['nombre_categoria'])) ?>">
-                <div class="product-card">
+                <div class="product-card" data-id="<?= $p['id_producto'] ?>" style="cursor:pointer">
                     <div class="product-img-wrap">
                         <img src="<?= IMG_PRODUCTOS_URL . htmlspecialchars($p['imagen']) ?>"
                              onerror="this.onerror=null;this.src='<?= IMG_DEFAULT_URL ?>'"
@@ -295,8 +329,8 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
                         <div class="product-footer">
                             <span class="product-price">$<?= number_format($p['precio'], 0, '.', ',') ?></span>
                             <div class="product-actions">
-                                <a href="views/auth/login.php" class="btn-action btn-fav" title="Favorito">♡</a>
-                                <a href="views/auth/login.php" class="btn-action btn-cart" title="Al carrito">🛒</a>
+                                <a href="<?= $urlCatalogo ?>" class="btn-action btn-fav" title="Favorito">♡</a>
+                                <a href="<?= $urlCatalogo ?>" class="btn-action btn-cart" title="Al carrito">🛒</a>
                             </div>
                         </div>
                     </div>
@@ -305,7 +339,7 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
             <?php endforeach; ?>
         </div>
         <div class="text-center mt-5">
-            <a href="views/auth/login.php" class="btn btn-accent btn-lg px-5">Ver Catálogo Completo</a>
+            <a href="<?= $urlCatalogo ?>" class="btn btn-accent btn-lg px-5">Ver Catálogo Completo</a>
         </div>
     </div>
 </section>
@@ -356,7 +390,11 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
     <div class="container position-relative text-center">
         <h2 class="cta-title">¿Listo para tu próximo vehículo?</h2>
         <p class="cta-sub">Regístrate gratis y accede a precios exclusivos, favoritos y seguimiento de pedidos.</p>
+        <?php if ($logueado): ?>
+        <a href="<?= $urlCatalogo ?>" class="btn btn-accent btn-lg px-5 me-3">Ir al Catálogo →</a>
+        <?php else: ?>
         <a href="views/auth/registro.php" class="btn btn-accent btn-lg px-5 me-3">Crear Cuenta Gratis</a>
+        <?php endif; ?>
         <a href="#contacto" class="btn btn-outline-light btn-lg px-5">Contactar Asesor</a>
     </div>
 </section>
@@ -371,8 +409,8 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
                 <h2 class="section-title mt-2">Estamos Aquí Para Ayudarte</h2>
                 <p class="section-subtitle">Nuestros asesores están listos para guiarte en cada paso del proceso.</p>
                 <div class="contact-info d-flex flex-column gap-3 mt-4 mb-5">
-                    <div class="contact-item"><span>📍</span> Av. Principal 123, La Paz, Bolivia</div>
-                    <div class="contact-item"><span>📞</span> +591 2 123-4567</div>
+                    <div class="contact-item"><span>📍</span> Av. América, Cochabamba, Bolivia</div>
+                    <div class="contact-item"><span>📞</span> +591 4 123-4567</div>
                     <div class="contact-item"><span>📧</span> info@autozone.com</div>
                     <div class="contact-item"><span>🕐</span> Lun–Sáb: 9:00 – 19:00</div>
                 </div>
@@ -421,10 +459,12 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
                     <div class="col-md-6">
                         <label class="auth-label">Tu nombre *</label>
                         <input type="text" class="auth-input" id="ctNombre" placeholder="Juan Pérez" required>
+                        <span class="field-error">Ingresa tu nombre completo.</span>
                     </div>
                     <div class="col-md-6">
                         <label class="auth-label">Tu correo *</label>
                         <input type="email" class="auth-input" id="ctCorreo" placeholder="tu@correo.com" required>
+                        <span class="field-error">Ingresa un correo válido.</span>
                     </div>
                     <div class="col-12">
                         <label class="auth-label">Teléfono <span style="color:#666;font-weight:400">(opcional)</span></label>
@@ -440,12 +480,14 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
                             <option>Soporte postventa</option>
                             <option>Otro</option>
                         </select>
+                        <span class="field-error">Selecciona un asunto.</span>
                     </div>
                     <div class="col-12">
                         <label class="auth-label">Mensaje *</label>
                         <textarea class="auth-input" id="ctMensaje" rows="4"
                                   placeholder="Cuéntanos en qué podemos ayudarte..." required
                                   style="resize:vertical;min-height:100px;"></textarea>
+                        <span class="field-error">Escribe tu mensaje.</span>
                     </div>
                     <div class="col-12 pt-1">
                         <button type="submit" class="btn btn-accent w-100 py-2">
@@ -514,32 +556,148 @@ $iconosCat = [1 => '🚗', 2 => '🚙', 3 => '🏎️', 4 => '🛻', 5 => '⚡']
     </div>
 </footer>
 
+<!-- MODAL DETALLE PRODUCTO -->
+<div class="modal fade" id="modalDetalle" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content" style="background:#0f0f18;border:1px solid #1e1e2e;border-radius:16px;">
+            <div class="modal-header border-0 pb-0">
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div id="detImgWrap" style="position:relative;height:300px;overflow:hidden;background:#0a0a12;">
+                    <img id="detImg" src="" alt="" style="width:100%;height:100%;object-fit:cover;">
+                    <div style="position:absolute;inset:0;background:linear-gradient(to top,#0f0f18 0%,transparent 60%);"></div>
+                </div>
+                <div style="padding:1.75rem;">
+                    <p id="detMarca" style="font-size:.75rem;font-weight:700;letter-spacing:2px;color:#e8272b;text-transform:uppercase;margin-bottom:.4rem;"></p>
+                    <h2 id="detNombre" style="font-family:'Bebas Neue',sans-serif;font-size:2.2rem;color:#fff;line-height:1;margin-bottom:.5rem;"></h2>
+                    <span id="detCategoria" style="display:inline-block;font-size:.7rem;font-weight:600;letter-spacing:1px;text-transform:uppercase;background:rgba(232,39,43,.12);color:#e8272b;border:1px solid rgba(232,39,43,.25);padding:.25rem .65rem;border-radius:20px;margin-bottom:1rem;"></span>
+                    <p id="detDesc" style="font-size:.9rem;color:#aaa;line-height:1.7;margin-bottom:1.5rem;"></p>
+                    <hr style="border-color:rgba(255,255,255,.06);margin:1.25rem 0;">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div>
+                            <div id="detPrecioGrande" style="font-family:'Bebas Neue',sans-serif;font-size:2.4rem;color:#fff;"></div>
+                            <div id="detDisponibilidad" style="font-size:.82rem;margin-top:.2rem;"></div>
+                        </div>
+                        <div id="detAcciones" class="d-flex gap-2 flex-wrap"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="assets/js/main.js"></script>
 <script>
-// ── Modal de contacto ──────────────────────────────────
-document.getElementById('contactForm')?.addEventListener('submit', function(e) {
-    e.preventDefault();
-    // Validación básica
-    const nombre  = document.getElementById('ctNombre').value.trim();
-    const correo  = document.getElementById('ctCorreo').value.trim();
-    const asunto  = document.getElementById('ctAsunto').value;
-    const mensaje = document.getElementById('ctMensaje').value.trim();
-    if (!nombre || !correo || !asunto || !mensaje) return;
+// ── Modal de contacto — validación con feedback visual ─
+(function () {
+    const reglas = [
+        { id: 'ctNombre',  msg: 'Ingresa tu nombre completo.' },
+        { id: 'ctCorreo',  msg: 'Ingresa un correo válido.',
+          extra: v => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v) },
+        { id: 'ctAsunto',  msg: 'Selecciona un asunto.' },
+        { id: 'ctMensaje', msg: 'Escribe tu mensaje.' },
+    ];
 
-    // Simular envío → mostrar confirmación
-    this.classList.add('d-none');
-    document.getElementById('contactSuccess').classList.remove('d-none');
+    function validarCampo(id, msg, extraFn) {
+        const el  = document.getElementById(id);
+        if (!el) return true;
+        const err = el.nextElementSibling?.classList?.contains('field-error')
+                    ? el.nextElementSibling : null;
+        const val = el.value.trim();
+        const ok  = val !== '' && (extraFn ? extraFn(val) : true);
+        el.classList.toggle('is-invalid', !ok);
+        if (err) err.classList.toggle('show', !ok);
+        return ok;
+    }
+
+    // Validar en tiempo real al salir del campo
+    reglas.forEach(({ id, msg, extra }) => {
+        const el = document.getElementById(id);
+        el?.addEventListener('blur', () => validarCampo(id, msg, extra));
+        el?.addEventListener('input', () => {
+            if (el.classList.contains('is-invalid')) validarCampo(id, msg, extra);
+        });
+    });
+
+    document.getElementById('contactForm')?.addEventListener('submit', function (e) {
+        e.preventDefault();
+        const todo_ok = reglas.every(({ id, msg, extra }) => validarCampo(id, msg, extra));
+        if (!todo_ok) return;
+        this.classList.add('d-none');
+        document.getElementById('contactSuccess').classList.remove('d-none');
+    });
+
+    document.getElementById('modalContacto')?.addEventListener('hidden.bs.modal', function () {
+        const form = document.getElementById('contactForm');
+        const ok   = document.getElementById('contactSuccess');
+        form?.reset();
+        form?.classList.remove('d-none');
+        ok?.classList.add('d-none');
+        // Limpiar errores
+        form?.querySelectorAll('.is-invalid').forEach(el => el.classList.remove('is-invalid'));
+        form?.querySelectorAll('.field-error.show').forEach(el => el.classList.remove('show'));
+    });
+}());
+</script>
+<script>
+// ── Modal de detalle de producto ──────────────────────
+const PRODUCTOS   = <?= json_encode($productosJS, JSON_UNESCAPED_UNICODE) ?>;
+const LOGUEADO    = <?= json_encode($logueado) ?>;
+const URL_CATALOG = <?= json_encode($urlCatalogo) ?>;
+
+document.getElementById('productosGrid')?.addEventListener('click', function (e) {
+    if (e.target.closest('a, button, form')) return;
+    const card = e.target.closest('.product-card[data-id]');
+    if (card) abrirDetalle(parseInt(card.dataset.id));
 });
 
-// Resetear form al cerrar el modal
-document.getElementById('modalContacto')?.addEventListener('hidden.bs.modal', function() {
-    const form = document.getElementById('contactForm');
-    const ok   = document.getElementById('contactSuccess');
-    form?.reset();
-    form?.classList.remove('d-none');
-    ok?.classList.add('d-none');
-});
+function abrirDetalle(id) {
+    const p = PRODUCTOS[id];
+    if (!p) return;
+
+    const img = document.getElementById('detImg');
+    img.src = p.imagen;
+    img.onerror = () => { img.onerror = null; img.src = p.imgDefault; };
+    img.alt = p.nombre;
+
+    document.getElementById('detMarca').textContent     = p.marca;
+    document.getElementById('detNombre').textContent    = p.nombre;
+    document.getElementById('detCategoria').textContent = p.categoria;
+    document.getElementById('detDesc').textContent      = p.descripcion;
+
+    const fmt = new Intl.NumberFormat('en-US').format(p.precio);
+    document.getElementById('detPrecioGrande').innerHTML =
+        `<small style="font-size:1rem;color:#666;font-family:Inter,sans-serif;font-weight:400;">USD</small> ${fmt}`;
+
+    document.getElementById('detDisponibilidad').innerHTML = p.stock > 0
+        ? '<span style="color:#22c55e;font-weight:600;">✓ Disponible en stock</span>'
+        : '<span style="color:#e8272b;font-weight:600;">✗ Sin stock disponible</span>';
+
+    let html = '';
+    if (LOGUEADO) {
+        html += `<form method="POST" action="controllers/ProductoController.php" class="d-inline">
+            <input type="hidden" name="accion" value="toggle_favorito">
+            <input type="hidden" name="id_producto" value="${id}">
+            <button type="submit" class="btn btn-outline-light">♡ Favorito</button></form>`;
+        if (p.stock > 0) {
+            html += `<form method="POST" action="controllers/ProductoController.php" class="d-inline">
+                <input type="hidden" name="accion" value="agregar_carrito">
+                <input type="hidden" name="id_producto" value="${id}">
+                <input type="hidden" name="cantidad" value="1">
+                <button type="submit" class="btn btn-accent">🛒 Agregar al carrito</button></form>`;
+        } else {
+            html += `<button class="btn btn-secondary" disabled>Sin stock</button>`;
+        }
+    } else {
+        html = `<a href="${URL_CATALOG}" class="btn btn-outline-light">♡ Favorito</a>
+                <a href="${URL_CATALOG}" class="btn btn-accent">🛒 Al carrito</a>`;
+    }
+    document.getElementById('detAcciones').innerHTML = html;
+
+    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalDetalle')).show();
+}
 </script>
 <script>
 // ── Mega-menú de categorías ────────────────────────────

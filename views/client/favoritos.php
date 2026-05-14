@@ -36,8 +36,9 @@ $favoritos = $stmt->fetchAll();
             <span style="color:#e8272b">⬡</span> AUTO<span style="color:#e8272b">ZONE</span>
         </a>
         <div class="d-flex align-items-center gap-3">
-            <a href="catalogo.php" class="nav-link text-white-50">Catálogo</a>
-            <a href="carrito.php"  class="nav-link text-white">🛒 Carrito (<?= totalCarrito() ?>)</a>
+            <a href="catalogo.php"  class="nav-link text-white-50">Catálogo</a>
+            <a href="carrito.php"   class="nav-link text-white">🛒 Carrito (<?= totalCarrito() ?>)</a>
+            <a href="dashboard.php" class="nav-link" style="color:#e8272b;font-weight:600">📦 Mis Pedidos</a>
             <a href="../../controllers/AuthController.php?accion=logout" class="btn btn-outline-light btn-sm">Salir</a>
         </div>
     </div>
