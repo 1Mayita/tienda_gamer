@@ -248,22 +248,46 @@ function suscribirNewsletter() {
         return;
     }
 
-    // Simular suscripción exitosa
-    btn.disabled        = true;
-    btn.textContent     = '✓';
-    btn.style.background = '#22c55e';
-    input.disabled      = true;
-    msg.style.display   = 'block';
-    msg.style.color     = '#22c55e';
-    msg.textContent     = '✅ ¡Gracias! Te notificaremos las mejores ofertas.';
+    // Estado de carga
+    btn.disabled         = true;
+    btn.textContent      = '...';
+    msg.style.display    = 'none';
 
-    // Reset después de 5 segundos
-    setTimeout(() => {
-        btn.disabled        = false;
-        btn.textContent     = '→';
-        btn.style.background = '';
-        input.disabled      = false;
-        input.value         = '';
-        setTimeout(() => { msg.style.display = 'none'; }, 3000);
-    }, 5000);
+    const fd = new FormData();
+    fd.append('correo', correo);
+
+    fetch('controllers/NewsletterController.php', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+            if (data.ok) {
+                btn.textContent      = '✓';
+                btn.style.background = '#22c55e';
+                input.disabled       = true;
+                msg.style.display    = 'block';
+                msg.style.color      = '#22c55e';
+                msg.textContent      = '✅ ¡Gracias! Revisa tu correo, te enviamos una confirmación.';
+
+                setTimeout(() => {
+                    btn.disabled         = false;
+                    btn.textContent      = '→';
+                    btn.style.background = '';
+                    input.disabled       = false;
+                    input.value          = '';
+                    setTimeout(() => { msg.style.display = 'none'; }, 3000);
+                }, 6000);
+            } else {
+                btn.disabled    = false;
+                btn.textContent = '→';
+                msg.style.display = 'block';
+                msg.style.color   = '#e8272b';
+                msg.textContent   = '⚠️ ' + (data.error || 'No se pudo procesar. Intenta de nuevo.');
+            }
+        })
+        .catch(() => {
+            btn.disabled    = false;
+            btn.textContent = '→';
+            msg.style.display = 'block';
+            msg.style.color   = '#e8272b';
+            msg.textContent   = '⚠️ Error de conexión. Intenta de nuevo.';
+        });
 }

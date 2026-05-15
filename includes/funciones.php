@@ -273,6 +273,98 @@ function generarPlantillaOTP(string $nombre, string $codigo): string {
 }
 
 /**
+ * Envía correo de bienvenida al newsletter.
+ */
+function enviarCorreoNewsletter(string $correo): bool {
+    require_once __DIR__ . '/../libs/PHPMailer/src/Exception.php';
+    require_once __DIR__ . '/../libs/PHPMailer/src/PHPMailer.php';
+    require_once __DIR__ . '/../libs/PHPMailer/src/SMTP.php';
+
+    $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+    try {
+        $mail->isSMTP();
+        $mail->Host       = MAIL_HOST;
+        $mail->SMTPAuth   = true;
+        $mail->Username   = MAIL_USERNAME;
+        $mail->Password   = MAIL_PASSWORD;
+        $mail->SMTPSecure = MAIL_ENCRYPTION;
+        $mail->Port       = MAIL_PORT;
+        $mail->CharSet    = 'UTF-8';
+
+        $mail->setFrom(MAIL_FROM_EMAIL, MAIL_FROM_NAME);
+        $mail->addAddress($correo);
+
+        $mail->isHTML(true);
+        $mail->Subject = '🚗 ¡Bienvenido al Newsletter de AutoZone!';
+        $mail->Body    = generarPlantillaNewsletter($correo);
+        $mail->AltBody = "¡Gracias por suscribirte a AutoZone! Te notificaremos cuando tengamos nuevos vehículos y ofertas exclusivas.";
+
+        $mail->send();
+        return true;
+    } catch (PHPMailer\PHPMailer\Exception $e) {
+        error_log("Error newsletter PHPMailer: " . $mail->ErrorInfo);
+        return false;
+    }
+}
+
+/**
+ * Plantilla HTML del correo de bienvenida al newsletter.
+ */
+function generarPlantillaNewsletter(string $correo): string {
+    $year = date('Y');
+    return "
+    <div style=\"background:#0a0a0f;padding:40px 0;font-family:'Segoe UI',Arial,sans-serif;\">
+        <div style=\"max-width:480px;margin:0 auto;background:#111118;border-radius:16px;border:1px solid rgba(255,255,255,0.06);overflow:hidden;\">
+
+            <!-- Header -->
+            <div style=\"background:linear-gradient(135deg,#1a0a0b,#0f0810);padding:36px 32px;text-align:center;border-bottom:1px solid rgba(232,39,43,0.15);\">
+                <div style=\"font-size:32px;margin-bottom:10px;\">⬡</div>
+                <span style=\"font-size:24px;font-weight:700;color:#fff;letter-spacing:2px;\">AUTO</span><span style=\"color:#e8272b;font-size:24px;font-weight:700;letter-spacing:2px;\">ZONE</span>
+            </div>
+
+            <!-- Body -->
+            <div style=\"padding:36px 32px;\">
+                <h2 style=\"color:#fff;font-size:22px;margin:0 0 12px;font-weight:700;\">¡Ya eres parte de AutoZone! 🎉</h2>
+                <p style=\"color:#888899;font-size:14px;line-height:1.7;margin:0 0 24px;\">
+                    Gracias por suscribirte a nuestro newsletter. A partir de ahora serás el primero en enterarte de:
+                </p>
+
+                <div style=\"background:rgba(232,39,43,0.05);border-radius:12px;padding:20px 24px;margin-bottom:24px;border:1px solid rgba(232,39,43,0.1);\">
+                    <div style=\"display:flex;align-items:center;margin-bottom:12px;\">
+                        <span style=\"font-size:18px;margin-right:12px;\">🚗</span>
+                        <span style=\"color:#f0f0f0;font-size:14px;font-weight:600;\">Nuevos vehículos en catálogo</span>
+                    </div>
+                    <div style=\"display:flex;align-items:center;margin-bottom:12px;\">
+                        <span style=\"font-size:18px;margin-right:12px;\">🏷️</span>
+                        <span style=\"color:#f0f0f0;font-size:14px;font-weight:600;\">Ofertas y promociones exclusivas</span>
+                    </div>
+                    <div style=\"display:flex;align-items:center;margin-bottom:12px;\">
+                        <span style=\"font-size:18px;margin-right:12px;\">⭐</span>
+                        <span style=\"color:#f0f0f0;font-size:14px;font-weight:600;\">Lanzamientos y modelos limitados</span>
+                    </div>
+                    <div style=\"display:flex;align-items:center;\">
+                        <span style=\"font-size:18px;margin-right:12px;\">💳</span>
+                        <span style=\"color:#f0f0f0;font-size:14px;font-weight:600;\">Planes de financiamiento especiales</span>
+                    </div>
+                </div>
+
+                <div style=\"background:rgba(255,255,255,0.03);border-radius:8px;padding:14px 16px;border-left:3px solid #e8272b;\">
+                    <p style=\"color:#888899;font-size:12px;line-height:1.5;margin:0;\">
+                        📧 Recibirás nuestras notificaciones en <strong style=\"color:#f0f0f0;\">$correo</strong>.
+                        Si no deseas seguir recibiendo correos, puedes ignorar futuros mensajes.
+                    </p>
+                </div>
+            </div>
+
+            <!-- Footer -->
+            <div style=\"padding:20px 32px;border-top:1px solid rgba(255,255,255,0.04);text-align:center;\">
+                <p style=\"color:#555566;font-size:11px;margin:0;\">© $year AutoZone · Bolivia · Vehículos de Alto Rendimiento</p>
+            </div>
+        </div>
+    </div>";
+}
+
+/**
  * Enmascara un correo: ejemplo@gmail.com → ej****@gmail.com
  */
 function enmascararCorreo(string $correo): string {
