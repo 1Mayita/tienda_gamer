@@ -37,6 +37,21 @@ switch ($accion) {
             header('Location: ' . BASE_URL . 'views/auth/registro.php');
             exit;
         }
+        if (!preg_match('/[A-Z]/', $password)) {
+            setFlash('error', 'La contraseña debe contener al menos una letra mayúscula.');
+            header('Location: ' . BASE_URL . 'views/auth/registro.php');
+            exit;
+        }
+        if (!preg_match('/[0-9]/', $password)) {
+            setFlash('error', 'La contraseña debe contener al menos un número.');
+            header('Location: ' . BASE_URL . 'views/auth/registro.php');
+            exit;
+        }
+        if (!preg_match('/[^A-Za-z0-9]/', $password)) {
+            setFlash('error', 'La contraseña debe contener al menos un carácter especial (ej: @, #, $, !).');
+            header('Location: ' . BASE_URL . 'views/auth/registro.php');
+            exit;
+        }
         if ($password !== $confirm) {
             setFlash('error', 'Las contraseñas no coinciden.');
             header('Location: ' . BASE_URL . 'views/auth/registro.php');
@@ -219,8 +234,13 @@ switch ($accion) {
         $rolesV   = ['cliente','premium','admin'];
         $rol      = in_array($_POST['rol'] ?? '', $rolesV) ? $_POST['rol'] : 'cliente';
 
-        if (empty($nombre) || empty($correo) || strlen($password) < 8) {
-            setFlash('error', 'Completa todos los campos. La contraseña debe tener al menos 8 caracteres.');
+        if (empty($nombre) || empty($correo) || empty($password)) {
+            setFlash('error', 'Todos los campos son obligatorios.');
+            header('Location: ' . BASE_URL . 'views/admin/usuarios.php');
+            exit;
+        }
+        if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password) || !preg_match('/[^A-Za-z0-9]/', $password)) {
+            setFlash('error', 'La contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.');
             header('Location: ' . BASE_URL . 'views/admin/usuarios.php');
             exit;
         }
@@ -282,8 +302,8 @@ switch ($accion) {
         }
 
         if (!empty($password)) {
-            if (strlen($password) < 8) {
-                setFlash('error', 'La nueva contraseña debe tener al menos 8 caracteres.');
+            if (strlen($password) < 8 || !preg_match('/[A-Z]/', $password) || !preg_match('/[0-9]/', $password) || !preg_match('/[^A-Za-z0-9]/', $password)) {
+                setFlash('error', 'La nueva contraseña debe tener al menos 8 caracteres, una mayúscula, un número y un carácter especial.');
                 header('Location: ' . BASE_URL . 'views/admin/usuarios.php');
                 exit;
             }
