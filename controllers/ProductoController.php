@@ -217,6 +217,62 @@ switch ($accion) {
         exit;
 
     // ------------------------------------------
+    // ACTUALIZAR CANTIDAD EN CARRITO (AJAX)
+    // ------------------------------------------
+    case 'actualizar_cantidad':
+        header('Content-Type: application/json; charset=utf-8');
+        if (!estaLogueado()) {
+            echo json_encode(['ok' => false, 'error' => 'No autenticado.']);
+            exit;
+        }
+
+        $id_producto = (int)($_POST['id_producto'] ?? 0);
+        $cantidad    = (int)($_POST['cantidad'] ?? 1);
+
+        if ($id_producto <= 0) {
+            echo json_encode(['ok' => false, 'error' => 'Producto inválido.']);
+            exit;
+        }
+
+        // Verificar producto y stock real en DB
+        $db   = getDB();
+        $stmt = $db->prepare('SELECT stock, precio, nombre FROM Producto WHERE id_producto = ? AND estado = 1');
+        $stmt->execute([$id_producto]);
+        $prod = $stmt->fetch();
+
+        if (!$prod) {
+            echo json_encode(['ok' => false, 'error' => 'Producto no disponible.']);
+            exit;
+        }
+
+        // Clamp cantidad entre 1 y stock disponible
+        $stockReal  = (int)$prod['stock'];
+        $clamped    = false;
+        if ($cantidad < 1) {
+            $cantidad = 1;
+            $clamped  = true;
+        }
+        if ($cantidad > $stockReal) {
+            $cantidad = $stockReal;
+            $clamped  = true;
+        }
+
+        // Actualizar sesión
+        if (!isset($_SESSION['carrito'])) $_SESSION['carrito'] = [];
+        $_SESSION['carrito'][$id_producto] = $cantidad;
+
+        echo json_encode([
+            'ok'       => true,
+            'cantidad' => $cantidad,
+            'stock'    => $stockReal,
+            'precio'   => (float)$prod['precio'],
+            'subtotal' => round($prod['precio'] * $cantidad, 2),
+            'clamped'  => $clamped,
+            'mensaje'  => $clamped ? "Cantidad ajustada a $cantidad (stock disponible: $stockReal)" : '',
+        ]);
+        exit;
+
+    // ------------------------------------------
     // AGREGAR AL CARRITO
     // ------------------------------------------
     case 'agregar_carrito':

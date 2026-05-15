@@ -3,6 +3,7 @@
 //  AUTOZONE - Controlador de Autenticación
 // ============================================
 require_once __DIR__ . '/../config/database.php';
+require_once __DIR__ . '/../config/mail.php';
 require_once __DIR__ . '/../includes/funciones.php';
 
 iniciarSesion();
@@ -85,21 +86,29 @@ switch ($accion) {
             exit;
         }
 
-        // Generar código 2FA y guardarlo en sesión temporal
-        $codigo = generarCodigo2FA();
-        $stmt   = $db->prepare('UPDATE Usuario SET codigo_2fa = ? WHERE id_usuario = ?');
-        $stmt->execute([$codigo, $usuario['id_usuario']]);
+        // Generar OTP seguro: hasheado en DB, texto plano solo para email
+        $codigoPlano = generarYGuardarOTP($db, $usuario['id_usuario']);
+
+        // Enviar OTP por correo electrónico
+        $enviado = enviarCorreoOTP($usuario['correo'], $usuario['nombre'], $codigoPlano);
 
         // Guardar datos temporales en sesión para paso 2FA
+        // ⚠️ NO almacenamos el código en texto plano en la sesión
         $_SESSION['pre_2fa'] = [
-            'id_usuario' => $usuario['id_usuario'],
-            'nombre'     => $usuario['nombre'],
-            'correo'     => $usuario['correo'],
-            'rol'        => $usuario['rol'],
-            'codigo_2fa' => $codigo,
+            'id_usuario'     => $usuario['id_usuario'],
+            'nombre'         => $usuario['nombre'],
+            'correo'         => $usuario['correo'],
+            'rol'            => $usuario['rol'],
+            'otp_timestamp'  => time(),
+            'ultimo_reenvio' => time(),
         ];
 
-        // En producción: enviar por email. Aquí lo mostramos para demo.
+        if ($enviado) {
+            setFlash('success', 'Se ha enviado un código de verificación a tu correo.');
+        } else {
+            setFlash('warning', 'No se pudo enviar el correo. Verifica la configuración SMTP.');
+        }
+
         header('Location: ' . BASE_URL . 'views/auth/verificar2fa.php');
         exit;
 
@@ -110,19 +119,32 @@ switch ($accion) {
         $codigoIngresado = sanitizar($_POST['codigo_2fa'] ?? '');
 
         if (!isset($_SESSION['pre_2fa'])) {
+            setFlash('error', 'Sesión expirada. Inicia sesión nuevamente.');
             header('Location: ' . BASE_URL . 'views/auth/login.php');
             exit;
         }
 
         $pre = $_SESSION['pre_2fa'];
+        $db  = getDB();
 
-        if ($codigoIngresado !== $pre['codigo_2fa']) {
-            setFlash('error', 'Código 2FA incorrecto. Intenta de nuevo.');
+        // Validar OTP con todas las verificaciones de seguridad
+        $resultado = validarOTP($db, $pre['id_usuario'], $codigoIngresado);
+
+        if (!$resultado['ok']) {
+            // Si los intentos se agotaron o el código expiró, destruir sesión pre-2FA
+            if ($resultado['restantes'] <= 0) {
+                unset($_SESSION['pre_2fa']);
+                setFlash('error', $resultado['error']);
+                header('Location: ' . BASE_URL . 'views/auth/login.php');
+                exit;
+            }
+
+            setFlash('error', $resultado['error']);
             header('Location: ' . BASE_URL . 'views/auth/verificar2fa.php');
             exit;
         }
 
-        // 2FA correcto: iniciar sesión real
+        // ✅ 2FA correcto: iniciar sesión real
         session_regenerate_id(true);
         $_SESSION['id_usuario'] = $pre['id_usuario'];
         $_SESSION['nombre']     = $pre['nombre'];
@@ -131,9 +153,9 @@ switch ($accion) {
         $_SESSION['2fa_ok']     = true;
         unset($_SESSION['pre_2fa']);
 
-        // Limpiar código 2FA de la DB
-        $db = getDB();
-        $stmt = $db->prepare('UPDATE Usuario SET codigo_2fa = NULL, estado_2fa = 1 WHERE id_usuario = ?');
+        // Limpiar OTP de la DB y marcar 2FA como verificado
+        limpiarOTP($db, $_SESSION['id_usuario']);
+        $stmt = $db->prepare('UPDATE Usuario SET estado_2fa = 1 WHERE id_usuario = ?');
         $stmt->execute([$_SESSION['id_usuario']]);
 
         setFlash('success', '¡Bienvenido, ' . $_SESSION['nombre'] . '!');
@@ -143,6 +165,47 @@ switch ($accion) {
         } else {
             header('Location: ' . BASE_URL . 'views/client/dashboard.php');
         }
+        exit;
+
+    // ------------------------------------------
+    // REENVIAR CÓDIGO 2FA
+    // ------------------------------------------
+    case 'reenviar2fa':
+        if (!isset($_SESSION['pre_2fa'])) {
+            header('Location: ' . BASE_URL . 'views/auth/login.php');
+            exit;
+        }
+
+        $pre = $_SESSION['pre_2fa'];
+
+        // Rate limit: mínimo OTP_REENVIO_COOLDOWN segundos entre reenvíos
+        $tiempoDesdeUltimo = time() - ($pre['ultimo_reenvio'] ?? 0);
+        if ($tiempoDesdeUltimo < OTP_REENVIO_COOLDOWN) {
+            $restante = OTP_REENVIO_COOLDOWN - $tiempoDesdeUltimo;
+            setFlash('error', "Espera {$restante} segundos antes de solicitar otro código.");
+            header('Location: ' . BASE_URL . 'views/auth/verificar2fa.php');
+            exit;
+        }
+
+        $db = getDB();
+
+        // Generar nuevo OTP
+        $codigoPlano = generarYGuardarOTP($db, $pre['id_usuario']);
+
+        // Enviar por correo
+        $enviado = enviarCorreoOTP($pre['correo'], $pre['nombre'], $codigoPlano);
+
+        // Actualizar timestamps en sesión
+        $_SESSION['pre_2fa']['otp_timestamp']  = time();
+        $_SESSION['pre_2fa']['ultimo_reenvio'] = time();
+
+        if ($enviado) {
+            setFlash('success', 'Se ha enviado un nuevo código a tu correo.');
+        } else {
+            setFlash('warning', 'No se pudo reenviar el correo. Verifica la configuración SMTP.');
+        }
+
+        header('Location: ' . BASE_URL . 'views/auth/verificar2fa.php');
         exit;
 
     // ------------------------------------------
@@ -258,6 +321,45 @@ switch ($accion) {
         $labels = ['cliente' => 'Cliente', 'premium' => 'Cliente Premium', 'admin' => 'Administrador'];
         setFlash('success', 'Rol actualizado a ' . $labels[$nuevo_rol] . ' correctamente.');
         header('Location: ' . BASE_URL . 'views/admin/usuarios.php');
+        exit;
+
+    // ------------------------------------------
+    // CAMBIAR ROL DE USUARIO AJAX (admin)
+    // ------------------------------------------
+    case 'cambiar_rol_ajax':
+        header('Content-Type: application/json; charset=utf-8');
+        if (!isset($_SESSION['rol']) || $_SESSION['rol'] !== 'admin') {
+            echo json_encode(['ok' => false, 'error' => 'No autorizado.']);
+            exit;
+        }
+
+        $id_target  = (int)($_POST['id_usuario'] ?? 0);
+        $rolesValid = ['cliente', 'premium', 'admin'];
+        $nuevo_rol  = in_array($_POST['rol'] ?? '', $rolesValid) ? $_POST['rol'] : 'cliente';
+
+        if ($id_target <= 0) {
+            echo json_encode(['ok' => false, 'error' => 'Usuario inválido.']);
+            exit;
+        }
+        if ($id_target === (int)$_SESSION['id_usuario']) {
+            echo json_encode(['ok' => false, 'error' => 'No puedes cambiar tu propio rol.']);
+            exit;
+        }
+
+        $db   = getDB();
+        $stmt = $db->prepare('UPDATE Usuario SET rol = ? WHERE id_usuario = ?');
+        $stmt->execute([$nuevo_rol, $id_target]);
+
+        $labels = ['cliente' => 'Cliente', 'premium' => '⭐ Premium', 'admin' => '🛡️ Admin'];
+        $clases = ['cliente' => 'pagado',  'premium' => 'premium',    'admin' => 'entregado'];
+
+        echo json_encode([
+            'ok'      => true,
+            'mensaje' => 'Rol actualizado correctamente.',
+            'rol'     => $nuevo_rol,
+            'label'   => $labels[$nuevo_rol],
+            'clase'   => $clases[$nuevo_rol]
+        ]);
         exit;
 
     // ------------------------------------------

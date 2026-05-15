@@ -164,15 +164,29 @@ document.addEventListener('DOMContentLoaded', function () {
     const countdown = document.getElementById('countdown2fa');
     if (countdown) {
         let secs = parseInt(countdown.dataset.secs || 120);
+        const btnVerificar = document.getElementById('btnVerificar');
         const interval = setInterval(() => {
             secs--;
             const m = Math.floor(secs / 60);
             const s = secs % 60;
             countdown.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+            if (secs <= 30) {
+                countdown.style.color = '#f97316';
+            }
             if (secs <= 0) {
                 clearInterval(interval);
                 countdown.textContent = 'Código expirado';
                 countdown.style.color = '#e8272b';
+                if (btnVerificar) {
+                    btnVerificar.disabled = true;
+                    btnVerificar.textContent = 'Código expirado — Solicita uno nuevo';
+                    btnVerificar.style.opacity = '0.5';
+                }
+                // Deshabilitar inputs OTP
+                document.querySelectorAll('.otp-digit').forEach(inp => {
+                    inp.disabled = true;
+                    inp.style.opacity = '0.4';
+                });
             }
         }, 1000);
     }

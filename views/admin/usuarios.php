@@ -3,6 +3,20 @@ require_once '../../config/database.php';
 require_once '../../includes/funciones.php';
 protegerRuta('admin');
 $db    = getDB();
+// ── Endpoint AJAX: devolver estadísticas en JSON ──
+if (isset($_GET['ajax']) && $_GET['ajax'] === 'stats') {
+    header('Content-Type: application/json; charset=utf-8');
+    $res = $db->query('SELECT rol FROM Usuario')->fetchAll(PDO::FETCH_ASSOC);
+    $stats = [
+        'total'   => count($res),
+        'cliente' => count(array_filter($res, fn($u) => $u['rol'] === 'cliente')),
+        'premium' => count(array_filter($res, fn($u) => $u['rol'] === 'premium')),
+        'admin'   => count(array_filter($res, fn($u) => $u['rol'] === 'admin')),
+    ];
+    echo json_encode($stats);
+    exit;
+}
+
 $flash = getFlash();
 $usuarios = $db->query('
     SELECT u.*, COUNT(v.id_venta) as total_ventas
@@ -38,49 +52,62 @@ $totalPremium  = count(array_filter($usuarios, fn($u) => $u['rol'] === 'premium'
                 <h1 class="admin-page-title">Gestión de Usuarios</h1>
                 <p class="admin-breadcrumb">Admin / Usuarios</p>
             </div>
-            <button class="btn btn-accent btn-sm px-4"
-                    data-bs-toggle="modal" data-bs-target="#modalCrear">
-                + Nuevo Usuario
-            </button>
+            <div class="d-flex align-items-center gap-3">
+                <span class="dash-live-badge" id="liveBadge" title="Datos actualizados automáticamente">
+                    <span class="dash-live-dot"></span> EN VIVO
+                </span>
+                <button class="btn btn-accent btn-sm px-4"
+                        data-bs-toggle="modal" data-bs-target="#modalCrear">
+                    + Nuevo Usuario
+                </button>
+            </div>
         </div>
 
         <div class="admin-content">
 
 
             <!-- STATS -->
-            <div class="row g-3 mb-4">
-                <div class="col-md-3">
+            <div class="row g-4 mb-4">
+                <div class="col-xl-3 col-md-6">
                     <div class="stat-card stat-blue">
-                        <div class="stat-icon">👥</div>
+                        <div class="stat-icon-wrap stat-icon-blue">
+                            <span class="stat-icon-inner">👥</span>
+                        </div>
                         <div class="stat-body">
-                            <span class="stat-value"><?= count($usuarios) ?></span>
+                            <span class="stat-value" id="statTotal" data-value="<?= count($usuarios) ?>"><?= count($usuarios) ?></span>
                             <span class="stat-label">Total Usuarios</span>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6">
                     <div class="stat-card stat-green">
-                        <div class="stat-icon">👤</div>
+                        <div class="stat-icon-wrap stat-icon-green">
+                            <span class="stat-icon-inner">👤</span>
+                        </div>
                         <div class="stat-body">
-                            <span class="stat-value"><?= $totalClientes ?></span>
+                            <span class="stat-value" id="statClientes" data-value="<?= $totalClientes ?>"><?= $totalClientes ?></span>
                             <span class="stat-label">Clientes</span>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6">
                     <div class="stat-card stat-gold">
-                        <div class="stat-icon">⭐</div>
+                        <div class="stat-icon-wrap stat-icon-gold">
+                            <span class="stat-icon-inner">⭐</span>
+                        </div>
                         <div class="stat-body">
-                            <span class="stat-value"><?= $totalPremium ?></span>
+                            <span class="stat-value" id="statPremium" data-value="<?= $totalPremium ?>"><?= $totalPremium ?></span>
                             <span class="stat-label">Premium</span>
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
+                <div class="col-xl-3 col-md-6">
                     <div class="stat-card stat-red">
-                        <div class="stat-icon">🛡️</div>
+                        <div class="stat-icon-wrap stat-icon-red">
+                            <span class="stat-icon-inner">🛡️</span>
+                        </div>
                         <div class="stat-body">
-                            <span class="stat-value"><?= $totalAdmins ?></span>
+                            <span class="stat-value" id="statAdmins" data-value="<?= $totalAdmins ?>"><?= $totalAdmins ?></span>
                             <span class="stat-label">Administradores</span>
                         </div>
                     </div>
@@ -127,7 +154,7 @@ $totalPremium  = count(array_filter($usuarios, fn($u) => $u['rol'] === 'premium'
                                     default   => '#e8272b',
                                 };
                             ?>
-                            <tr data-search="<?= strtolower($u['nombre'].' '.$u['correo'].' '.$u['rol']) ?>">
+                            <tr id="user-row-<?= $u['id_usuario'] ?>" data-search="<?= strtolower($u['nombre'].' '.$u['correo'].' '.$u['rol']) ?>">
                                 <td style="color:#9899aa">#<?= $u['id_usuario'] ?></td>
                                 <td>
                                     <div class="d-flex align-items-center gap-2">
@@ -146,7 +173,7 @@ $totalPremium  = count(array_filter($usuarios, fn($u) => $u['rol'] === 'premium'
                                     </div>
                                 </td>
                                 <td style="color:#9899aa;font-size:.83rem"><?= htmlspecialchars($u['correo']) ?></td>
-                                <td><span class="badge-estado <?= $badgeClase ?>"><?= $badgeLabel ?></span></td>
+                                <td><span class="badge-estado badge-rol <?= $badgeClase ?>"><?= $badgeLabel ?></span></td>
                                 <td>
                                     <span style="color:<?= $u['total_ventas'] > 0 ? '#4ade80' : '#9899aa' ?>;font-weight:600">
                                         <?= $u['total_ventas'] ?>
@@ -159,16 +186,16 @@ $totalPremium  = count(array_filter($usuarios, fn($u) => $u['rol'] === 'premium'
                                     <div class="d-flex gap-2 align-items-center flex-wrap">
                                         <!-- CAMBIAR ROL -->
                                         <form method="POST" action="../../controllers/AuthController.php"
-                                              class="d-flex gap-1 align-items-center">
-                                            <input type="hidden" name="accion" value="cambiar_rol">
+                                              class="d-flex gap-1 align-items-center form-cambiar-rol">
+                                            <input type="hidden" name="accion" value="cambiar_rol_ajax">
                                             <input type="hidden" name="id_usuario" value="<?= $u['id_usuario'] ?>">
-                                            <select name="rol" class="auth-input"
+                                            <select name="rol" class="auth-input select-rol"
                                                     style="padding:5px 28px 5px 8px;font-size:.76rem;width:115px;">
                                                 <option value="cliente"  <?= $u['rol']==='cliente'  ? 'selected':'' ?>>Cliente</option>
                                                 <option value="premium"  <?= $u['rol']==='premium'  ? 'selected':'' ?>>⭐ Premium</option>
                                                 <option value="admin"    <?= $u['rol']==='admin'    ? 'selected':'' ?>>🛡️ Admin</option>
                                             </select>
-                                            <button type="submit" class="btn-table-action btn-edit" title="Guardar rol">✓</button>
+                                            <button type="submit" class="btn-table-action btn-edit btn-save-rol" title="Guardar rol">✓</button>
                                         </form>
                                         <!-- EDITAR DATOS -->
                                         <button type="button"
@@ -294,32 +321,138 @@ $totalPremium  = count(array_filter($usuarios, fn($u) => $u['rol'] === 'premium'
 <script src="../../assets/js/toasts.js"></script>
 <?php include '../../includes/flash_toast.php'; ?>
 <script>
-// Abrir modal editar con datos del usuario
-function abrirEditar(u) {
-    document.getElementById('editId').value     = u.id;
-    document.getElementById('editNombre').value = u.nombre;
-    document.getElementById('editCorreo').value = u.correo;
-    document.getElementById('editRol').value    = u.rol;
-    bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditar')).show();
-}
+// ============================================
+//  USUARIOS — Estadísticas Dinámicas y AJAX
+// ============================================
+(function() {
+    const liveBadge = document.getElementById('liveBadge');
 
-// Confirmar eliminación
-function confirmarEliminar(ventas, nombre) {
-    if (ventas > 0) {
-        alert('No se puede eliminar a "' + nombre + '" porque tiene ' + ventas + ' pedido(s) registrado(s).\n\nPrimero cambia su rol o espera a que no tenga pedidos activos.');
-        return false;
+    // ---- Animación de conteo numérico ----
+    function animarConteo(el, valorFinal) {
+        const valorActual = parseFloat(el.dataset.value) || 0;
+        if (valorActual === valorFinal) return;
+        el.dataset.value = valorFinal;
+        const duracion = 800;
+        const inicio = performance.now();
+        function step(ts) {
+            const progreso = Math.min((ts - inicio) / duracion, 1);
+            const ease = 1 - Math.pow(1 - progreso, 3);
+            const val = valorActual + (valorFinal - valorActual) * ease;
+            el.textContent = Math.round(val);
+            if (progreso < 1) {
+                requestAnimationFrame(step);
+            } else {
+                if (valorActual !== valorFinal) {
+                    el.classList.add('stat-value-changed');
+                    setTimeout(() => el.classList.remove('stat-value-changed'), 1200);
+                }
+            }
+        }
+        requestAnimationFrame(step);
     }
-    return confirm('¿Eliminar definitivamente a "' + nombre + '"?\nEsta acción no se puede deshacer.');
-}
 
-// Búsqueda en tiempo real
-document.getElementById('buscarUsuario')?.addEventListener('input', function() {
-    const q = this.value.toLowerCase().trim();
-    document.querySelectorAll('#tablaUsuarios tbody tr').forEach(function(row) {
-        const text = row.dataset.search || '';
-        row.style.display = text.includes(q) ? '' : 'none';
+    // ---- Actualizar stats via AJAX ----
+    function refrescarStats() {
+        if (liveBadge) {
+            liveBadge.classList.add('dash-live-pulse');
+            setTimeout(() => liveBadge.classList.remove('dash-live-pulse'), 1000);
+        }
+        fetch('usuarios.php?ajax=stats')
+            .then(r => r.json())
+            .then(data => {
+                const eTot = document.getElementById('statTotal');
+                const eCli = document.getElementById('statClientes');
+                const ePre = document.getElementById('statPremium');
+                const eAdm = document.getElementById('statAdmins');
+                if (eTot) animarConteo(eTot, data.total);
+                if (eCli) animarConteo(eCli, data.cliente);
+                if (ePre) animarConteo(ePre, data.premium);
+                if (eAdm) animarConteo(eAdm, data.admin);
+            }).catch(()=>{});
+    }
+
+    // ---- Cambio de rol AJAX ----
+    document.querySelectorAll('.form-cambiar-rol').forEach(form => {
+        form.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const formData = new FormData(this);
+            const btn = this.querySelector('.btn-save-rol');
+            const originalText = btn.textContent;
+            btn.innerHTML = '...';
+            btn.disabled = true;
+
+            fetch(this.action, {
+                method: 'POST',
+                body: formData
+            })
+            .then(r => r.json())
+            .then(data => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                if (!data.ok) {
+                    if (typeof mostrarToast === 'function') mostrarToast('error', 'Error', data.error);
+                    return;
+                }
+                
+                // Actualizar badge en la tabla
+                const row = this.closest('tr');
+                const badge = row.querySelector('.badge-rol');
+                if (badge) {
+                    badge.className = 'badge-estado badge-rol ' + data.clase;
+                    badge.textContent = data.label;
+                }
+                
+                // Actualizar búsqueda dataset
+                const searchStr = row.dataset.search.replace(/(cliente|premium|admin)/g, '').trim() + ' ' + data.rol;
+                row.dataset.search = searchStr;
+
+                if (typeof mostrarToast === 'function') mostrarToast('success', 'Éxito', data.mensaje);
+                refrescarStats(); // Refrescar stats después del cambio
+            })
+            .catch(() => {
+                btn.textContent = originalText;
+                btn.disabled = false;
+                if (typeof mostrarToast === 'function') mostrarToast('error', 'Error', 'Error de conexión');
+            });
+        });
     });
-});
+
+    // Conteo inicial
+    document.addEventListener('DOMContentLoaded', function() {
+        document.querySelectorAll('.stat-value[data-value]').forEach(el => {
+            const val = parseFloat(el.dataset.value) || 0;
+            el.dataset.value = 0;
+            setTimeout(() => animarConteo(el, val), 300);
+        });
+    });
+
+    // Abrir modal editar con datos del usuario
+    window.abrirEditar = function(u) {
+        document.getElementById('editId').value     = u.id;
+        document.getElementById('editNombre').value = u.nombre;
+        document.getElementById('editCorreo').value = u.correo;
+        document.getElementById('editRol').value    = u.rol;
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalEditar')).show();
+    };
+
+    // Confirmar eliminación
+    window.confirmarEliminar = function(ventas, nombre) {
+        if (ventas > 0) {
+            alert('No se puede eliminar a "' + nombre + '" porque tiene ' + ventas + ' pedido(s) registrado(s).\n\nPrimero cambia su rol o espera a que no tenga pedidos activos.');
+            return false;
+        }
+        return confirm('¿Eliminar definitivamente a "' + nombre + '"?\nEsta acción no se puede deshacer.');
+    };
+
+    // Búsqueda en tiempo real
+    document.getElementById('buscarUsuario')?.addEventListener('input', function() {
+        const q = this.value.toLowerCase().trim();
+        document.querySelectorAll('#tablaUsuarios tbody tr').forEach(function(row) {
+            const text = row.dataset.search || '';
+            row.style.display = text.includes(q) ? '' : 'none';
+        });
+    });
+})();
 </script>
 </body>
 </html>
