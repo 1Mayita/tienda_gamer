@@ -73,6 +73,12 @@ $flash = getFlash();
                         <button type="button" class="toggle-pass auth-eye" data-target="#contrasena">👁️</button>
                     </div>
                     <div class="password-strength mt-2" id="pwStrength"></div>
+                    <ul class="pw-rules mt-2 mb-0 ps-3" id="pwRules" style="font-size:.78rem; color:#888; list-style:none; padding-left:0;">
+                        <li id="rule-len">✗ Mínimo 8 caracteres</li>
+                        <li id="rule-upper">✗ Al menos una mayúscula</li>
+                        <li id="rule-num">✗ Al menos un número</li>
+                        <li id="rule-special">✗ Al menos un carácter especial (@, #, $, !...)</li>
+                    </ul>
                 </div>
 
                 <div class="auth-field mb-4">
@@ -84,10 +90,13 @@ $flash = getFlash();
                 </div>
 
                 <div class="form-check mb-4">
-                    <input type="checkbox" class="form-check-input" id="terminos" required>
+                    <input type="checkbox" class="form-check-input" id="terminos" name="terminos" required>
                     <label class="form-check-label auth-check-label" for="terminos">
                         Acepto los <a href="#" class="auth-link">Términos de Servicio</a> y la <a href="#" class="auth-link">Política de Privacidad</a>
                     </label>
+                    <div class="invalid-feedback" style="display:none; color:#e8272b; font-size:.78rem;" id="terminosError">
+                        Debes aceptar los términos y condiciones para continuar.
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-accent w-100 py-3 auth-submit-btn">
@@ -106,16 +115,104 @@ $flash = getFlash();
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="../../assets/js/main.js"></script>
 <script>
-// Indicador de fortaleza de contraseña
-document.getElementById('contrasena')?.addEventListener('input', function () {
-    const pw    = this.value;
-    const wrap  = document.getElementById('pwStrength');
-    const rules = [pw.length >= 8, /[A-Z]/.test(pw), /[0-9]/.test(pw), /[^A-Za-z0-9]/.test(pw)];
-    const score = rules.filter(Boolean).length;
+// ---- INDICADOR DE FORTALEZA Y REGLAS DE CONTRASEÑA ----
+const pwInput = document.getElementById('contrasena');
+const pwStrength = document.getElementById('pwStrength');
+const rules = {
+    'rule-len':     pw => pw.length >= 8,
+    'rule-upper':   pw => /[A-Z]/.test(pw),
+    'rule-num':     pw => /[0-9]/.test(pw),
+    'rule-special': pw => /[^A-Za-z0-9]/.test(pw),
+};
+const ruleLabels = {
+    'rule-len':     'Mínimo 8 caracteres',
+    'rule-upper':   'Al menos una mayúscula',
+    'rule-num':     'Al menos un número',
+    'rule-special': 'Al menos un carácter especial (@, #, $, !...)',
+};
+
+pwInput?.addEventListener('input', function () {
+    const pw = this.value;
+    let score = 0;
+    for (const [id, fn] of Object.entries(rules)) {
+        const el = document.getElementById(id);
+        const ok = fn(pw);
+        if (ok) score++;
+        if (el) {
+            el.textContent = (ok ? '✓ ' : '✗ ') + ruleLabels[id];
+            el.style.color  = ok ? '#22c55e' : '#888';
+            el.style.fontWeight = ok ? '600' : '400';
+        }
+    }
     const colors = ['','#e8272b','#f97316','#eab308','#22c55e'];
     const labels = ['','Muy débil','Débil','Buena','Fuerte'];
-    wrap.innerHTML = score > 0 ? `<div style="height:4px;border-radius:2px;background:${colors[score]};width:${score*25}%;transition:all .3s"></div><span style="font-size:.75rem;color:${colors[score]}">${labels[score]}</span>` : '';
+    pwStrength.innerHTML = score > 0
+        ? `<div style="height:4px;border-radius:2px;background:${colors[score]};width:${score*25}%;transition:all .3s"></div>
+           <span style="font-size:.75rem;color:${colors[score]}">${labels[score]}</span>`
+        : '';
 });
+
+// ---- VALIDACIÓN AL ENVIAR ----
+document.getElementById('authForm')?.addEventListener('submit', function (e) {
+    const pw      = document.getElementById('contrasena').value;
+    const confirm = document.getElementById('confirmar').value;
+    const terminos = document.getElementById('terminos');
+    const terminosError = document.getElementById('terminosError');
+    let valid = true;
+
+    // Validar contraseña fuerte
+    const allRulesOk = Object.values(rules).every(fn => fn(pw));
+    if (!allRulesOk) {
+        e.preventDefault();
+        // Disparar el input para mostrar las reglas en rojo
+        pwInput.dispatchEvent(new Event('input'));
+        pwInput.focus();
+        const firstFail = Object.entries(rules).find(([, fn]) => !fn(pw));
+        const msg = firstFail ? '⚠️ ' + ruleLabels[firstFail[0]] : '⚠️ La contraseña no cumple los requisitos.';
+        showToastReg(msg, 'error');
+        valid = false;
+    }
+
+    // Validar que coincidan
+    if (valid && pw !== confirm) {
+        e.preventDefault();
+        document.getElementById('confirmar').focus();
+        showToastReg('⚠️ Las contraseñas no coinciden.', 'error');
+        valid = false;
+    }
+
+    // Validar términos
+    if (!terminos.checked) {
+        e.preventDefault();
+        terminosError.style.display = 'block';
+        terminos.closest('.form-check').scrollIntoView({ behavior: 'smooth', block: 'center' });
+        showToastReg('⚠️ Debes aceptar los Términos y Condiciones.', 'error');
+        valid = false;
+    } else {
+        terminosError.style.display = 'none';
+    }
+});
+
+document.getElementById('terminos')?.addEventListener('change', function () {
+    document.getElementById('terminosError').style.display = this.checked ? 'none' : 'block';
+});
+
+// Toast local para el registro (por si main.js no está cargado aún)
+function showToastReg(msg, tipo) {
+    let container = document.getElementById('toastContainer');
+    if (!container) {
+        container = document.createElement('div');
+        container.id = 'toastContainer';
+        container.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:8px;';
+        document.body.appendChild(container);
+    }
+    const toast = document.createElement('div');
+    const bg = tipo === 'success' ? '#15803d' : tipo === 'error' ? '#e8272b' : '#2563eb';
+    toast.style.cssText = `background:${bg};color:#fff;padding:14px 22px;border-radius:10px;font-size:.9rem;font-weight:500;max-width:340px;box-shadow:0 8px 24px rgba(0,0,0,.4);`;
+    toast.textContent = msg;
+    container.appendChild(toast);
+    setTimeout(() => { toast.style.opacity = '0'; toast.style.transition = 'opacity .3s'; setTimeout(() => toast.remove(), 300); }, 4000);
+}
 </script>
 </body>
 </html>

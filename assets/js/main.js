@@ -224,3 +224,46 @@ document.addEventListener('DOMContentLoaded', function () {
 const style = document.createElement('style');
 style.textContent = `@keyframes slideIn { from { opacity:0; transform:translateX(20px); } to { opacity:1; transform:translateX(0); } }`;
 document.head.appendChild(style);
+
+// ---- NEWSLETTER FOOTER ----
+function suscribirNewsletter() {
+    const input = document.getElementById('newsletterInput');
+    const msg   = document.getElementById('newsletterMsg');
+    const btn   = document.getElementById('newsletterBtn');
+    if (!input || !msg) return;
+
+    const correo = input.value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+    if (!correo) {
+        msg.style.display = 'block';
+        msg.style.color   = '#e8272b';
+        msg.textContent   = '⚠️ Por favor ingresa tu correo.';
+        return;
+    }
+    if (!emailRegex.test(correo)) {
+        msg.style.display = 'block';
+        msg.style.color   = '#e8272b';
+        msg.textContent   = '⚠️ Ingresa un correo válido.';
+        return;
+    }
+
+    // Simular suscripción exitosa
+    btn.disabled        = true;
+    btn.textContent     = '✓';
+    btn.style.background = '#22c55e';
+    input.disabled      = true;
+    msg.style.display   = 'block';
+    msg.style.color     = '#22c55e';
+    msg.textContent     = '✅ ¡Gracias! Te notificaremos las mejores ofertas.';
+
+    // Reset después de 5 segundos
+    setTimeout(() => {
+        btn.disabled        = false;
+        btn.textContent     = '→';
+        btn.style.background = '';
+        input.disabled      = false;
+        input.value         = '';
+        setTimeout(() => { msg.style.display = 'none'; }, 3000);
+    }, 5000);
+}
