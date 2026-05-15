@@ -36,8 +36,9 @@ $favoritos = $stmt->fetchAll();
             <span style="color:#e8272b">⬡</span> AUTO<span style="color:#e8272b">ZONE</span>
         </a>
         <div class="d-flex align-items-center gap-3">
-            <a href="catalogo.php" class="nav-link text-white-50">Catálogo</a>
-            <a href="carrito.php"  class="nav-link text-white">🛒 Carrito (<?= totalCarrito() ?>)</a>
+            <a href="catalogo.php"  class="nav-link text-white-50">Catálogo</a>
+            <a href="carrito.php"   class="nav-link text-white">🛒 Carrito (<?= totalCarrito() ?>)</a>
+            <a href="dashboard.php" class="nav-link" style="color:#e8272b;font-weight:600">📦 Mis Pedidos</a>
             <a href="../../controllers/AuthController.php?accion=logout" class="btn btn-outline-light btn-sm">Salir</a>
         </div>
     </div>
@@ -67,8 +68,8 @@ $favoritos = $stmt->fetchAll();
             <div class="col-xl-3 col-lg-4 col-md-6">
                 <div class="product-card">
                     <div class="product-img-wrap">
-                        <img src="../../assets/img/<?= htmlspecialchars($p['imagen']) ?>"
-                             onerror="this.src='../../assets/img/default.jpg'"
+                        <img src="<?= IMG_PRODUCTOS_URL . htmlspecialchars($p['imagen']) ?>"
+                             onerror="this.onerror=null;this.src='<?= IMG_DEFAULT_URL ?>'"
                              alt="<?= htmlspecialchars($p['nombre']) ?>"
                              class="product-img">
                         <span class="product-badge"><?= htmlspecialchars($p['nombre_categoria']) ?></span>

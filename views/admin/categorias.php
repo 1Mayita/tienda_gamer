@@ -62,11 +62,6 @@ $categorias = $db->query('SELECT c.*, COUNT(p.id_producto) as total_productos FR
             <button class="btn btn-accent" data-bs-toggle="modal" data-bs-target="#modalCrear">+ Nueva Categoría</button>
         </div>
 
-        <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['tipo'] === 'success' ? 'success' : 'danger' ?> flash-alert mx-4 mt-3">
-            <?= htmlspecialchars($flash['mensaje']) ?>
-        </div>
-        <?php endif; ?>
 
         <div class="admin-content">
             <div class="row g-4">
@@ -76,7 +71,7 @@ $categorias = $db->query('SELECT c.*, COUNT(p.id_producto) as total_productos FR
                         <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
                                 <h3 style="color:#fff;font-weight:600;font-size:1rem;"><?= htmlspecialchars($cat['nombre_categoria']) ?></h3>
-                                <p class="text-muted small"><?= htmlspecialchars($cat['descripcion'] ?: 'Sin descripción') ?></p>
+                                <p style="color:#9899aa;font-size:.82rem"><?= htmlspecialchars($cat['descripcion'] ?: 'Sin descripción') ?></p>
                             </div>
                             <span class="badge-estado pagado"><?= $cat['total_productos'] ?> autos</span>
                         </div>
@@ -160,6 +155,8 @@ $categorias = $db->query('SELECT c.*, COUNT(p.id_producto) as total_productos FR
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="../../assets/js/toasts.js"></script>
+<?php include '../../includes/flash_toast.php'; ?>
 <script src="../../assets/js/main.js"></script>
 </body>
 </html>

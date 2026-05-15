@@ -57,17 +57,51 @@
 .auth-label { font-size: 0.8rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: #888899; margin-bottom: 8px; display: block; }
 .auth-input {
     width: 100%;
-    background: #16161e;
+    background: #1c1c26;
     border: 1px solid rgba(255,255,255,0.08);
     color: #f0f0f0;
     padding: 13px 16px;
     border-radius: 8px;
     font-size: 0.95rem;
     outline: none;
-    transition: border-color .2s;
+    transition: border-color .2s, box-shadow .2s;
+    font-family: 'Inter', sans-serif;
 }
 .auth-input:focus { border-color: #e8272b; box-shadow: 0 0 0 3px rgba(232,39,43,0.15); }
 .auth-input::placeholder { color: #555566; }
+
+/* Selects totalmente estilizados */
+select.auth-input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='7' viewBox='0 0 12 7'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888899' stroke-width='1.8' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 40px;
+    cursor: pointer;
+}
+select.auth-input option {
+    background: #1c1c26;
+    color: #f0f0f0;
+}
+select.auth-input option:disabled { color: #555566; }
+
+/* Textarea */
+textarea.auth-input { resize: vertical; min-height: 100px; }
+
+/* Estado de error */
+.auth-input.is-invalid {
+    border-color: #e8272b !important;
+    box-shadow: 0 0 0 3px rgba(232,39,43,0.12) !important;
+}
+.field-error {
+    font-size: .75rem;
+    color: #e8272b;
+    margin-top: 4px;
+    display: none;
+}
+.field-error.show { display: block; }
 .auth-eye {
     position: absolute;
     right: 12px;

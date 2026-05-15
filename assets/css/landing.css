@@ -4,6 +4,13 @@
 ============================================ */
 
 :root {
+    --bs-secondary-color: #9899aa;
+    --bs-secondary-color-rgb: 153, 153, 170;
+}
+/* Override Bootstrap text-muted para fondos oscuros */
+.text-muted { color: #9899aa !important; }
+
+:root {
     --clr-bg:       #0a0a0f;
     --clr-bg2:      #111118;
     --clr-bg3:      #16161e;
