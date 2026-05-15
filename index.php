@@ -539,9 +539,10 @@ foreach ($productos as $p) {
                 <h6 class="footer-heading">Newsletter</h6>
                 <p class="footer-desc">Recibe las mejores ofertas en tu correo.</p>
                 <div class="newsletter-form d-flex gap-2 mt-3">
-                    <input type="email" class="form-control form-dark" placeholder="tu@correo.com">
-                    <button class="btn btn-accent px-3">→</button>
+                    <input type="email" id="newsletterInput" class="form-control form-dark" placeholder="tu@correo.com">
+                    <button class="btn btn-accent px-3" id="newsletterBtn" onclick="suscribirNewsletter()">→</button>
                 </div>
+                <p id="newsletterMsg" style="font-size:.78rem; margin-top:.5rem; display:none;"></p>
             </div>
         </div>
         <hr class="footer-divider">
